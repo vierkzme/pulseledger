@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext.js';
-import { useTheme } from '../../context/ThemeContext.js';
+import { useAuth } from '../../context/AuthContext.jsx';
+import { useTheme } from '../../context/ThemeContext.jsx';
 
 export default function AppShell({ children, isPolling = true, onTogglePolling }) {
   const { user, logout } = useAuth();
