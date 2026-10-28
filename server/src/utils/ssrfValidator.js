@@ -60,23 +60,39 @@ export async function validateSafeUrl(rawUrl) {
   try {
     parsed = new URL(rawUrl);
   } catch (err) {
-    throw new AppError('The target URL format is invalid', 400, 'INVALID_URL');
+    throw new AppError('The target URL format is invalid', 400, 'INVALID_URL', [
+      { field: 'url', issue: 'Must be a well-formed URL' },
+    ]);
   }
 
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-    throw new AppError('Only http: and https: protocols are permitted', 400, 'INVALID_PROTOCOL');
+    throw new AppError('Only http: and https: protocols are permitted', 400, 'INVALID_PROTOCOL', [
+      { field: 'url', issue: 'Unsupported protocol scheme' },
+    ]);
   }
 
   const hostname = parsed.hostname;
   if (!hostname || hostname === 'localhost' || hostname.endsWith('.local') || hostname.endsWith('.internal')) {
-    throw new AppError('Access to localhost and internal domain names is prohibited', 400, 'SSRF_BLOCKED');
+    throw new AppError('Access to localhost and internal domain names is prohibited', 400, 'SSRF_BLOCKED', [
+      { field: 'url', issue: 'Target hostname is a restricted internal domain' },
+    ]);
   }
 
   let addresses;
   try {
     addresses = await dns.lookup(hostname, { all: true });
   } catch (err) {
-    throw new AppError(`DNS resolution failed for host "${hostname}": ${err.message}`, 400, 'DNS_LOOKUP_FAILED');
+    if (err.code === 'ENOTFOUND') {
+      throw new AppError(
+        `Could not resolve hostname "${hostname}". Please check that the domain exists.`,
+        400,
+        'DNS_NOT_FOUND',
+        [{ field: 'url', issue: `Hostname ${hostname} could not be resolved` }]
+      );
+    }
+    throw new AppError(`DNS resolution failed for host "${hostname}": ${err.message}`, 400, 'DNS_LOOKUP_FAILED', [
+      { field: 'url', issue: err.message },
+    ]);
   }
 
   for (const record of addresses) {
@@ -85,7 +101,8 @@ export async function validateSafeUrl(rawUrl) {
       throw new AppError(
         `Target URL resolves to a prohibited internal IP address (${record.address})`,
         400,
-        'SSRF_BLOCKED'
+        'SSRF_BLOCKED',
+        [{ field: 'url', issue: `Blocked address: ${record.address}` }]
       );
     }
   }
