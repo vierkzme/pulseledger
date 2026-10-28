@@ -7,17 +7,7 @@ import LoginPage from './pages/LoginPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import MonitorDetailPage from './pages/MonitorDetailPage.jsx';
-
-function NotificationsPlaceholder() {
-  return (
-    <div className="py-6 font-mono">
-      <div className="bg-panel border border-subtle rounded-md p-6">
-        <h2 className="text-base font-semibold text-text-primary">Notification Webhooks</h2>
-        <p className="text-xs text-text-secondary mt-1">Webhook dispatch configurations loading...</p>
-      </div>
-    </div>
-  );
-}
+import NotificationsPage from './pages/NotificationsPage.jsx';
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -97,7 +87,7 @@ export default function App() {
               path="/notifications"
               element={
                 <ProtectedRoute>
-                  <NotificationsPlaceholder />
+                  <NotificationsPage />
                 </ProtectedRoute>
               }
             />
