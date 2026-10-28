@@ -4,7 +4,7 @@ import { signToken } from '../utils/jwt.js';
 import { AppError } from '../middlewares/errorHandler.js';
 
 export async function registerUser({ name, email, password }) {
-  const normalizedEmail = email.trim();
+  const normalizedEmail = email.trim().toLowerCase();
   const existingUser = await prisma.user.findUnique({
     where: { email: normalizedEmail },
   });
@@ -33,7 +33,7 @@ export async function registerUser({ name, email, password }) {
 }
 
 export async function loginUser({ email, password }) {
-  const normalizedEmail = email.trim();
+  const normalizedEmail = email.trim().toLowerCase();
   const user = await prisma.user.findUnique({
     where: { email: normalizedEmail },
   });
