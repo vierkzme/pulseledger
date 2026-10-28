@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# Build & Dist
+dist/
+build/
+**/dist/
+**/build/
+
+# Local documentation & notes (keep only README.md)
+*.md
+!README.md
+!readme.md
+!**/README.md
+.agents/
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
