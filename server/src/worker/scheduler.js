@@ -7,6 +7,8 @@ import {
   buildRecoveryEmbed,
 } from '../services/discordService.js';
 
+const inFlightMonitors = new Set();
+
 export async function checkMonitorWithRetry(monitor) {
   let result = await executePing(monitor);
 
@@ -78,34 +80,42 @@ export async function handleIncidentAndAlerts(monitor, result) {
 }
 
 export async function processMonitorCheck(monitor) {
-  const result = await checkMonitorWithRetry(monitor);
+  if (inFlightMonitors.has(monitor.id)) {
+    return;
+  }
+  inFlightMonitors.add(monitor.id);
 
-  await prisma.pingLog.create({
-    data: {
-      monitorId: monitor.id,
-      status: result.status,
-      statusCode: result.statusCode,
-      latencyMs: result.latencyMs,
-      errorMessage: result.errorMessage,
-      checkedAt: new Date(),
-    },
-  });
+  try {
+    const result = await checkMonitorWithRetry(monitor);
 
-  await handleIncidentAndAlerts(monitor, result);
+    await prisma.pingLog.create({
+      data: {
+        monitorId: monitor.id,
+        status: result.status,
+        statusCode: result.statusCode,
+        latencyMs: result.latencyMs,
+        errorMessage: result.errorMessage,
+        checkedAt: new Date(),
+      },
+    });
 
-  const nextCheckAt = new Date(Date.now() + monitor.intervalSeconds * 1000);
-  await prisma.monitor.update({
-    where: { id: monitor.id },
-    data: {
-      currentStatus: result.status,
-      lastLatencyMs: result.latencyMs,
-      lastCheckedAt: new Date(),
-      nextCheckAt,
-    },
-  });
+    await handleIncidentAndAlerts(monitor, result);
+
+    const nextCheckAt = new Date(Date.now() + monitor.intervalSeconds * 1000);
+    await prisma.monitor.update({
+      where: { id: monitor.id },
+      data: {
+        currentStatus: result.status,
+        lastLatencyMs: result.latencyMs,
+        lastCheckedAt: new Date(),
+        nextCheckAt,
+      },
+    });
+  } finally {
+    inFlightMonitors.delete(monitor.id);
+  }
 }
 
-// Simple concurrency limiter helper
 async function mapConcurrent(items, limit, fn) {
   const results = [];
   const executing = [];
@@ -142,6 +152,7 @@ export function startScheduler(options = {}) {
         where: {
           isActive: true,
           nextCheckAt: { lte: new Date() },
+          id: { notIn: Array.from(inFlightMonitors) },
         },
         take: 50,
       });
@@ -157,7 +168,6 @@ export function startScheduler(options = {}) {
   };
 
   const intervalId = setInterval(tick, tickMs);
-  // Run initial tick immediately
   setTimeout(tick, 100);
 
   return {
