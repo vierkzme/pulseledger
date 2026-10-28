@@ -6,6 +6,9 @@ import {
   updateMonitor,
   deleteMonitor,
   toggleMonitorStatus,
+  getMonitorMetrics,
+  getMonitorLogs,
+  getMonitorIncidents,
 } from '../services/monitorService.js';
 
 export async function handleGetSummary(req, res, next) {
@@ -89,6 +92,45 @@ export async function handleToggleMonitor(req, res, next) {
     res.json({
       success: true,
       message: data.isActive ? 'Monitor resumed' : 'Monitor paused',
+      data,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function handleGetMetrics(req, res, next) {
+  try {
+    const { range = '24h' } = req.query;
+    const data = await getMonitorMetrics(req.user.id, req.params.id, range);
+    res.json({
+      success: true,
+      data,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function handleGetLogs(req, res, next) {
+  try {
+    const { page = 1, limit = 50 } = req.query;
+    const data = await getMonitorLogs(req.user.id, req.params.id, { page, limit });
+    res.json({
+      success: true,
+      data: data.logs,
+      meta: data.meta,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function handleGetIncidents(req, res, next) {
+  try {
+    const data = await getMonitorIncidents(req.user.id, req.params.id);
+    res.json({
+      success: true,
       data,
     });
   } catch (err) {

@@ -10,6 +10,9 @@ import {
   handleUpdateMonitor,
   handleDeleteMonitor,
   handleToggleMonitor,
+  handleGetMetrics,
+  handleGetLogs,
+  handleGetIncidents,
 } from '../controllers/monitorController.js';
 
 const router = Router();
@@ -23,5 +26,9 @@ router.get('/:id', handleGetMonitorById);
 router.patch('/:id', validateBody(updateMonitorSchema), handleUpdateMonitor);
 router.patch('/:id/toggle', handleToggleMonitor);
 router.delete('/:id', handleDeleteMonitor);
+
+router.get('/:id/metrics', handleGetMetrics);
+router.get('/:id/logs', handleGetLogs);
+router.get('/:id/incidents', handleGetIncidents);
 
 export default router;

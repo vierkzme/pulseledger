@@ -265,3 +265,126 @@ export async function toggleMonitorStatus(userId, id) {
     currentStatus: updated.currentStatus,
   };
 }
+
+export async function getMonitorMetrics(userId, monitorId, range = '24h') {
+  const monitor = await prisma.monitor.findFirst({
+    where: { id: monitorId, userId },
+  });
+
+  if (!monitor) {
+    throw new AppError('Monitor not found', 404, 'NOT_FOUND');
+  }
+
+  const now = Date.now();
+  let durationMs = 24 * 60 * 60 * 1000;
+  if (range === '1h') durationMs = 60 * 60 * 1000;
+  if (range === '7d') durationMs = 7 * 24 * 60 * 60 * 1000;
+  if (range === '30d') durationMs = 30 * 24 * 60 * 60 * 1000;
+
+  const sinceDate = new Date(now - durationMs);
+
+  const logs = await prisma.pingLog.findMany({
+    where: {
+      monitorId,
+      checkedAt: { gte: sinceDate },
+    },
+    orderBy: { checkedAt: 'asc' },
+    select: {
+      checkedAt: true,
+      latencyMs: true,
+      status: true,
+      statusCode: true,
+    },
+  });
+
+  const totalChecks = logs.length;
+  const successfulChecks = logs.filter((l) => l.status === 'UP').length;
+  const failedChecks = totalChecks - successfulChecks;
+  const uptimePercentage = totalChecks > 0 ? Number(((successfulChecks / totalChecks) * 100).toFixed(2)) : 100;
+
+  const upLatencies = logs.filter((l) => l.status === 'UP').map((l) => l.latencyMs).sort((a, b) => a - b);
+
+  let avgLatencyMs = 0;
+  let minLatencyMs = 0;
+  let maxLatencyMs = 0;
+  let p95LatencyMs = 0;
+
+  if (upLatencies.length > 0) {
+    avgLatencyMs = Math.round(upLatencies.reduce((sum, val) => sum + val, 0) / upLatencies.length);
+    minLatencyMs = upLatencies[0];
+    maxLatencyMs = upLatencies[upLatencies.length - 1];
+    const p95Index = Math.floor(upLatencies.length * 0.95);
+    p95LatencyMs = upLatencies[Math.min(p95Index, upLatencies.length - 1)];
+  }
+
+  const series = logs.map((l) => ({
+    timestamp: l.checkedAt.toISOString(),
+    latencyMs: l.latencyMs,
+    status: l.status,
+    statusCode: l.statusCode,
+  }));
+
+  return {
+    monitorId,
+    range,
+    summary: {
+      uptimePercentage,
+      totalChecks,
+      successfulChecks,
+      failedChecks,
+      avgLatencyMs,
+      minLatencyMs,
+      maxLatencyMs,
+      p95LatencyMs,
+    },
+    series,
+  };
+}
+
+export async function getMonitorLogs(userId, monitorId, { page = 1, limit = 50 } = {}) {
+  const monitor = await prisma.monitor.findFirst({
+    where: { id: monitorId, userId },
+  });
+
+  if (!monitor) {
+    throw new AppError('Monitor not found', 404, 'NOT_FOUND');
+  }
+
+  const take = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 100);
+  const skip = (Math.max(parseInt(page, 10) || 1, 1) - 1) * take;
+
+  const [total, logs] = await Promise.all([
+    prisma.pingLog.count({ where: { monitorId } }),
+    prisma.pingLog.findMany({
+      where: { monitorId },
+      orderBy: { checkedAt: 'desc' },
+      skip,
+      take,
+    }),
+  ]);
+
+  return {
+    logs,
+    meta: {
+      page: parseInt(page, 10) || 1,
+      limit: take,
+      total,
+      totalPages: Math.ceil(total / take),
+    },
+  };
+}
+
+export async function getMonitorIncidents(userId, monitorId) {
+  const monitor = await prisma.monitor.findFirst({
+    where: { id: monitorId, userId },
+  });
+
+  if (!monitor) {
+    throw new AppError('Monitor not found', 404, 'NOT_FOUND');
+  }
+
+  return prisma.incident.findMany({
+    where: { monitorId },
+    orderBy: { startedAt: 'desc' },
+  });
+}
