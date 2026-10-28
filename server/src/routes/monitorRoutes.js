@@ -9,6 +9,7 @@ import {
   handleGetMonitorById,
   handleUpdateMonitor,
   handleDeleteMonitor,
+  handleToggleMonitor,
 } from '../controllers/monitorController.js';
 
 const router = Router();
@@ -20,6 +21,7 @@ router.get('/', handleListMonitors);
 router.post('/', validateBody(createMonitorSchema), handleCreateMonitor);
 router.get('/:id', handleGetMonitorById);
 router.patch('/:id', validateBody(updateMonitorSchema), handleUpdateMonitor);
+router.patch('/:id/toggle', handleToggleMonitor);
 router.delete('/:id', handleDeleteMonitor);
 
 export default router;
