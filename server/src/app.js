@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import authRoutes from './routes/authRoutes.js';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js';
 
 const app = express();
@@ -19,5 +20,10 @@ app.get('/api/health', (req, res) => {
     },
   });
 });
+
+app.use('/api/auth', authRoutes);
+
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 export default app;
