@@ -2,6 +2,7 @@ import {
   listNotificationChannels,
   createNotificationChannel,
   deleteNotificationChannel,
+  testNotificationChannel,
 } from '../services/notificationService.js';
 
 export async function handleListNotifications(req, res, next) {
@@ -36,6 +37,18 @@ export async function handleDeleteNotification(req, res, next) {
       success: true,
       message: 'Notification channel deleted successfully',
       data: { id: req.params.id },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function handleTestNotification(req, res, next) {
+  try {
+    const result = await testNotificationChannel(req.user.id, req.params.id);
+    res.json({
+      success: true,
+      message: result.message,
     });
   } catch (err) {
     next(err);

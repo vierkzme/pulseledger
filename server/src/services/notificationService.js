@@ -1,5 +1,6 @@
 import prisma from '../config/prisma.js';
 import { AppError } from '../middlewares/errorHandler.js';
+import { sendDiscordWebhook, buildTestEmbed } from './discordService.js';
 
 export async function listNotificationChannels(userId) {
   return prisma.notificationChannel.findMany({
@@ -34,4 +35,23 @@ export async function deleteNotificationChannel(userId, id) {
   });
 
   return { id };
+}
+
+export async function testNotificationChannel(userId, id) {
+  const channel = await prisma.notificationChannel.findFirst({
+    where: { id, userId },
+  });
+
+  if (!channel) {
+    throw new AppError('Notification channel not found', 404, 'NOT_FOUND');
+  }
+
+  const payload = buildTestEmbed(channel.name);
+  const sent = await sendDiscordWebhook(channel.webhookUrl, payload);
+
+  if (!sent) {
+    throw new AppError('Failed to send test message to Discord webhook. Please verify the URL.', 400, 'WEBHOOK_FAILED');
+  }
+
+  return { success: true, message: `Test alert dispatched to ${channel.name}` };
 }
