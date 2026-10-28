@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum HttpMethod {
+  GET
+  POST
+  PUT
+  HEAD
+  DELETE
+}
+
+enum MonitorStatus {
+  PENDING
+  UP
+  DOWN
+  PAUSED
+}
+
+model User {
+  id           String    @id @default(uuid()) @db.Uuid
+  email        String    @unique @db.VarChar(255)
+  passwordHash String    @map("password_hash")
+  name         String    @db.VarChar(100)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  monitors     Monitor[]
+
+  @@map("users")
+}
+
+model Monitor {
+  id                String        @id @default(uuid()) @db.Uuid
+  userId            String        @map("user_id") @db.Uuid
+  name              String        @db.VarChar(100)
+  url               String        @db.Text
+  method            HttpMethod    @default(GET)
+  headers           Json?         @default("{}")
+  body              String?       @db.Text
+  intervalSeconds   Int           @default(60) @map("interval_seconds")
+  timeoutMs         Int           @default(10000) @map("timeout_ms")
+  expectedStatusMin Int           @default(200) @map("expected_status_min")
+  expectedStatusMax Int           @default(299) @map("expected_status_max")
+  isActive          Boolean       @default(true) @map("is_active")
+  currentStatus     MonitorStatus @default(PENDING) @map("current_status")
+  lastLatencyMs     Int?          @map("last_latency_ms")
+  lastCheckedAt     DateTime?     @map("last_checked_at")
+  nextCheckAt       DateTime      @default(now()) @map("next_check_at")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([isActive, nextCheckAt], name: "idx_monitors_scheduler")
+  @@index([userId], name: "idx_monitors_user")
+  @@map("monitors")
+}
