@@ -1,0 +1,100 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Default: Dark Mode (Carbon Console) */
+  --bg-canvas: #0C0E12;
+  --bg-panel: #141820;
+  --border-subtle: #252B37;
+  --text-primary: #F1F5F9;
+  --text-secondary: #94A3B8;
+
+  --accent-amber: #F59E0B;
+  --accent-amber-text: #0C0E12;
+
+  --status-up: #22C55E;
+  --status-up-bg: #052E16;
+
+  --status-down: #EF4444;
+  --status-down-bg: #3B0707;
+  --status-down-text: #F87171;
+
+  --status-paused: #64748B;
+  --status-paused-bg: #1E293B;
+  --status-paused-text: #94A3B8;
+
+  color-scheme: dark;
+}
+
+html.light {
+  /* Light Mode (Paper Ledger) */
+  --bg-canvas: #F6F5F0;
+  --bg-panel: #FFFFFF;
+  --border-subtle: #D6D3C9;
+  --text-primary: #14171F;
+  --text-secondary: #475569;
+
+  --accent-amber: #B45309;
+  --accent-amber-text: #FFFFFF;
+
+  --status-up: #15803D;
+  --status-up-bg: #DCFCE7;
+
+  --status-down: #B91C1C;
+  --status-down-bg: #FEE2E2;
+  --status-down-text: #991B1B;
+
+  --status-paused: #475569;
+  --status-paused-bg: #E2E8F0;
+  --status-paused-text: #334155;
+
+  color-scheme: light;
+}
+
+@layer base {
+  /* Interaction affordances: cursor pointer for all enabled interactive controls */
+  a[href],
+  button,
+  summary,
+  select,
+  label[for],
+  [role="button"],
+  [role="tab"],
+  [role="switch"],
+  input[type="checkbox"],
+  input[type="radio"],
+  input[type="submit"] {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  input:disabled,
+  select:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+
+  /* Accessible focus indicators: 2px amber outline across both themes */
+  :focus-visible {
+    outline: 2px solid var(--accent-amber);
+    outline-offset: 2px;
+  }
+
+  /* Telemetry tabular numbers */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
