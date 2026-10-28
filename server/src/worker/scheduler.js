@@ -1,4 +1,5 @@
 import prisma from '../config/prisma.js';
+import { env } from '../config/env.js';
 import { executePing } from './pinger.js';
 import {
   sendDiscordWebhook,
@@ -74,4 +75,95 @@ export async function handleIncidentAndAlerts(monitor, result) {
         .map((ln) => sendDiscordWebhook(ln.channel.webhookUrl, payload))
     );
   }
+}
+
+export async function processMonitorCheck(monitor) {
+  const result = await checkMonitorWithRetry(monitor);
+
+  await prisma.pingLog.create({
+    data: {
+      monitorId: monitor.id,
+      status: result.status,
+      statusCode: result.statusCode,
+      latencyMs: result.latencyMs,
+      errorMessage: result.errorMessage,
+      checkedAt: new Date(),
+    },
+  });
+
+  await handleIncidentAndAlerts(monitor, result);
+
+  const nextCheckAt = new Date(Date.now() + monitor.intervalSeconds * 1000);
+  await prisma.monitor.update({
+    where: { id: monitor.id },
+    data: {
+      currentStatus: result.status,
+      lastLatencyMs: result.latencyMs,
+      lastCheckedAt: new Date(),
+      nextCheckAt,
+    },
+  });
+}
+
+// Simple concurrency limiter helper
+async function mapConcurrent(items, limit, fn) {
+  const results = [];
+  const executing = [];
+
+  for (const item of items) {
+    const p = Promise.resolve().then(() => fn(item));
+    results.push(p);
+
+    if (limit <= items.length) {
+      const e = p.then(() => executing.splice(executing.indexOf(e), 1));
+      executing.push(e);
+      if (executing.length >= limit) {
+        await Promise.race(executing);
+      }
+    }
+  }
+
+  return Promise.allSettled(results);
+}
+
+export function startScheduler(options = {}) {
+  const tickMs = options.tickMs || env.workerTickMs || 10000;
+  const concurrency = options.concurrency || env.workerConcurrency || 20;
+
+  let isRunning = true;
+  let isTickInProgress = false;
+
+  const tick = async () => {
+    if (!isRunning || isTickInProgress) return;
+    isTickInProgress = true;
+
+    try {
+      const dueMonitors = await prisma.monitor.findMany({
+        where: {
+          isActive: true,
+          nextCheckAt: { lte: new Date() },
+        },
+        take: 50,
+      });
+
+      if (dueMonitors.length > 0) {
+        await mapConcurrent(dueMonitors, concurrency, processMonitorCheck);
+      }
+    } catch (err) {
+      console.error('[Worker Scheduler Error]', err);
+    } finally {
+      isTickInProgress = false;
+    }
+  };
+
+  const intervalId = setInterval(tick, tickMs);
+  // Run initial tick immediately
+  setTimeout(tick, 100);
+
+  return {
+    stop() {
+      isRunning = false;
+      clearInterval(intervalId);
+    },
+  };
 }
