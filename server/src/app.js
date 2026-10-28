@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import authRoutes from './routes/authRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import monitorRoutes from './routes/monitorRoutes.js';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js';
 
 const app = express();
@@ -24,6 +25,7 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/monitors', monitorRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
