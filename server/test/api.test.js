@@ -35,4 +35,59 @@ describe('PulseLedger Core Backend Test Suite', () => {
     expect(res.status).toBe(401);
     expect(res.body.success).toBe(false);
   });
+
+  it('GET /api/channels and /api/notifications returns list with auth token', async () => {
+    const loginRes = await request(app)
+      .post('/api/auth/login')
+      .send({ email: 'ardy@example.com', password: 'PasswordKuat123!' });
+    const token = loginRes.body.data.token;
+
+    const resChannels = await request(app)
+      .get('/api/channels')
+      .set('Authorization', `Bearer ${token}`);
+    expect(resChannels.status).toBe(200);
+    expect(resChannels.body.success).toBe(true);
+    expect(Array.isArray(resChannels.body.data)).toBe(true);
+
+    const resNotifications = await request(app)
+      .get('/api/notifications')
+      .set('Authorization', `Bearer ${token}`);
+    expect(resNotifications.status).toBe(200);
+    expect(resNotifications.body.success).toBe(true);
+  });
+
+  it('POST and PUT /api/channels creates and updates a webhook channel', async () => {
+    const loginRes = await request(app)
+      .post('/api/auth/login')
+      .send({ email: 'ardy@example.com', password: 'PasswordKuat123!' });
+    const token = loginRes.body.data.token;
+
+    const invalidRes = await request(app)
+      .post('/api/channels')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Invalid', webhookUrl: 'https://example.com/webhook' });
+    expect(invalidRes.status).toBe(400);
+
+    const createRes = await request(app)
+      .post('/api/channels')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        name: 'Dev Channel',
+        webhookUrl: 'https://discord.com/api/webhooks/987654321098765432/valid-token-example',
+      });
+    expect(createRes.status).toBe(201);
+    expect(createRes.body.data.name).toBe('Dev Channel');
+    const createdId = createRes.body.data.id;
+
+    const updateRes = await request(app)
+      .put(`/api/channels/${createdId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Updated Channel' });
+    expect(updateRes.status).toBe(200);
+    expect(updateRes.body.data.name).toBe('Updated Channel');
+
+    await request(app)
+      .delete(`/api/channels/${createdId}`)
+      .set('Authorization', `Bearer ${token}`);
+  });
 });
