@@ -1,6 +1,7 @@
 import {
   listNotificationChannels,
   createNotificationChannel,
+  updateNotificationChannel,
   deleteNotificationChannel,
   testNotificationChannel,
 } from '../services/notificationService.js';
@@ -23,6 +24,19 @@ export async function handleCreateNotification(req, res, next) {
     res.status(201).json({
       success: true,
       message: 'Discord notification channel configured successfully',
+      data,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function handleUpdateNotification(req, res, next) {
+  try {
+    const data = await updateNotificationChannel(req.user.id, req.params.id, req.body);
+    res.json({
+      success: true,
+      message: 'Discord notification channel updated successfully',
       data,
     });
   } catch (err) {

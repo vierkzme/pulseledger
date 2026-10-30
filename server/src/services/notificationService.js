@@ -21,6 +21,25 @@ export async function createNotificationChannel(userId, data) {
   });
 }
 
+export async function updateNotificationChannel(userId, id, data) {
+  const channel = await prisma.notificationChannel.findFirst({
+    where: { id, userId },
+  });
+
+  if (!channel) {
+    throw new AppError('Notification channel not found', 404, 'NOT_FOUND');
+  }
+
+  return prisma.notificationChannel.update({
+    where: { id },
+    data: {
+      name: data.name ? data.name.trim() : undefined,
+      webhookUrl: data.webhookUrl ? data.webhookUrl.trim() : undefined,
+      isEnabled: data.isEnabled !== undefined ? data.isEnabled : undefined,
+    },
+  });
+}
+
 export async function deleteNotificationChannel(userId, id) {
   const channel = await prisma.notificationChannel.findFirst({
     where: { id, userId },
