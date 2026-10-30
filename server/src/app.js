@@ -25,6 +25,7 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/channels', notificationRoutes);
 app.use('/api/monitors', monitorRoutes);
 
 app.use(notFoundHandler);

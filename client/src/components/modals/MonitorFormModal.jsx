@@ -57,7 +57,9 @@ export default function MonitorFormModal({ isOpen, onClose, initialData = null, 
         setHeadersList([{ key: '', value: '' }]);
       }
 
-      if (Array.isArray(initialData.notificationChannels)) {
+      if (Array.isArray(initialData.notifications)) {
+        setSelectedChannels(initialData.notifications.map((c) => c.channelId || c.channel?.id || c.id));
+      } else if (Array.isArray(initialData.notificationChannels)) {
         setSelectedChannels(initialData.notificationChannels.map((c) => c.channelId || c.id));
       } else {
         setSelectedChannels([]);
@@ -136,7 +138,7 @@ export default function MonitorFormModal({ isOpen, onClose, initialData = null, 
         expectedStatusMin: Number(expectedStatusMin),
         expectedStatusMax: Number(expectedStatusMax),
         headers: headersObject,
-        channelIds: selectedChannels,
+        notificationChannelIds: selectedChannels,
       };
 
       if (initialData && initialData.id) {
