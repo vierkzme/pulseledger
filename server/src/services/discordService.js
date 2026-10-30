@@ -1,15 +1,32 @@
 export function formatDuration(totalSeconds) {
-  if (!totalSeconds || totalSeconds < 60) {
-    return `${totalSeconds || 0} detik`;
+  const sec = totalSeconds || 0;
+  if (sec < 60) {
+    return `${sec} ${sec === 1 ? 'second' : 'seconds'}`;
   }
-  const minutes = Math.floor(totalSeconds / 60);
-  const remainingSeconds = totalSeconds % 60;
+  const minutes = Math.floor(sec / 60);
+  const remainingSeconds = sec % 60;
+  const minStr = `${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`;
+  const secStr = `${remainingSeconds} ${remainingSeconds === 1 ? 'second' : 'seconds'}`;
+
   if (minutes < 60) {
-    return `${minutes} menit ${remainingSeconds} detik`;
+    return remainingSeconds > 0 ? `${minStr} ${secStr}` : minStr;
   }
+
   const hours = Math.floor(minutes / 60);
   const remainingMinutes = minutes % 60;
-  return `${hours} jam ${remainingMinutes} menit ${remainingSeconds} detik`;
+  const hrStr = `${hours} ${hours === 1 ? 'hour' : 'hours'}`;
+  const remMinStr = `${remainingMinutes} ${remainingMinutes === 1 ? 'minute' : 'minutes'}`;
+
+  if (remainingSeconds === 0 && remainingMinutes === 0) {
+    return hrStr;
+  }
+  if (remainingSeconds === 0) {
+    return `${hrStr} ${remMinStr}`;
+  }
+  if (remainingMinutes === 0) {
+    return `${hrStr} ${secStr}`;
+  }
+  return `${hrStr} ${remMinStr} ${secStr}`;
 }
 
 export async function sendDiscordWebhook(webhookUrl, payload, maxRetries = 2) {
@@ -53,7 +70,7 @@ export function buildDownEmbed(monitor, failureDetails) {
     embeds: [
       {
         title: `🔴 Monitor DOWN: ${monitor.name}`,
-        description: 'Endpoint tidak merespons sesuai ekspektasi setelah verifikasi ulang.',
+        description: 'Endpoint is not responding as expected after confirmation retry.',
         color: 15680580, // #EF4444
         fields: [
           {
@@ -62,7 +79,7 @@ export function buildDownEmbed(monitor, failureDetails) {
             inline: false,
           },
           {
-            name: 'Penyebab Kegagalan',
+            name: 'Failure Cause',
             value: `**${failureDetails.errorMessage || `HTTP ${failureDetails.statusCode}`}**`,
             inline: true,
           },
@@ -72,7 +89,7 @@ export function buildDownEmbed(monitor, failureDetails) {
             inline: true,
           },
           {
-            name: 'Waktu Kejadian (UTC)',
+            name: 'Incident Timestamp (UTC)',
             value: `\`${new Date().toUTCString()}\``,
             inline: false,
           },
@@ -93,7 +110,7 @@ export function buildRecoveryEmbed(monitor, recoveryDetails, durationSeconds) {
     embeds: [
       {
         title: `🟢 Monitor RECOVERED: ${monitor.name}`,
-        description: 'Layanan telah kembali aktif dan merespons secara normal.',
+        description: 'Service has recovered and is responding normally.',
         color: 1096065, // #10B981
         fields: [
           {
@@ -102,12 +119,12 @@ export function buildRecoveryEmbed(monitor, recoveryDetails, durationSeconds) {
             inline: false,
           },
           {
-            name: 'Status & Latency Saat Ini',
+            name: 'Current Status & Latency',
             value: `**HTTP ${recoveryDetails.statusCode || 200}** (\`${recoveryDetails.latencyMs} ms\`)`,
             inline: true,
           },
           {
-            name: 'Total Durasi Downtime',
+            name: 'Total Downtime Duration',
             value: `**${formatDuration(durationSeconds)}**`,
             inline: true,
           },
@@ -127,16 +144,16 @@ export function buildTestEmbed(channelName) {
     embeds: [
       {
         title: '🧪 Test Notification: PulseLedger',
-        description: `Koneksi webhook berhasil diverifikasi untuk kanal **${channelName}**.`,
+        description: `Webhook connection verified successfully for channel **${channelName}**.`,
         color: 1610507, // Amber #1890FF / #F59E0B
         fields: [
           {
-            name: 'Status Webhook',
-            value: '🟢 Aktif dan Siap Menerima Alert',
+            name: 'Webhook Status',
+            value: '🟢 Active and ready to receive alerts',
             inline: true,
           },
           {
-            name: 'Waktu Uji Coba',
+            name: 'Test Timestamp (UTC)',
             value: `\`${new Date().toUTCString()}\``,
             inline: true,
           },
