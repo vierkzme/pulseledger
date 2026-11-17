@@ -8,9 +8,10 @@ export default function MonitorFormModal({ isOpen, onClose, initialData = null, 
   const [url, setUrl] = useState('');
   const [method, setMethod] = useState('GET');
   const [intervalSeconds, setIntervalSeconds] = useState(60);
-  const [timeoutMs, setTimeoutMs] = useState(5000);
+  const [timeoutMs, setTimeoutMs] = useState(10000);
   const [expectedStatusMin, setExpectedStatusMin] = useState(200);
   const [expectedStatusMax, setExpectedStatusMax] = useState(299);
+  const [body, setBody] = useState('');
   const [headersList, setHeadersList] = useState([{ key: '', value: '' }]);
   const [selectedChannels, setSelectedChannels] = useState([]);
   const [availableChannels, setAvailableChannels] = useState([]);
@@ -18,7 +19,6 @@ export default function MonitorFormModal({ isOpen, onClose, initialData = null, 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Synchronize modal state with isOpen
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
@@ -43,9 +43,10 @@ export default function MonitorFormModal({ isOpen, onClose, initialData = null, 
       setUrl(initialData.url || '');
       setMethod(initialData.method || 'GET');
       setIntervalSeconds(initialData.intervalSeconds || 60);
-      setTimeoutMs(initialData.timeoutMs || 5000);
+      setTimeoutMs(initialData.timeoutMs || 10000);
       setExpectedStatusMin(initialData.expectedStatusMin || 200);
       setExpectedStatusMax(initialData.expectedStatusMax || 299);
+      setBody(initialData.body || '');
 
       if (initialData.headers && typeof initialData.headers === 'object') {
         const list = Object.entries(initialData.headers).map(([k, v]) => ({
@@ -69,9 +70,10 @@ export default function MonitorFormModal({ isOpen, onClose, initialData = null, 
       setUrl('');
       setMethod('GET');
       setIntervalSeconds(60);
-      setTimeoutMs(5000);
+      setTimeoutMs(10000);
       setExpectedStatusMin(200);
       setExpectedStatusMax(299);
+      setBody('');
       setHeadersList([{ key: '', value: '' }]);
       setSelectedChannels([]);
     }
@@ -85,7 +87,6 @@ export default function MonitorFormModal({ isOpen, onClose, initialData = null, 
         setAvailableChannels(response.data.data || []);
       }
     } catch {
-      // Non-critical fallback if channels cannot be fetched
       setAvailableChannels([]);
     } finally {
       setIsLoadingChannels(false);
@@ -120,7 +121,6 @@ export default function MonitorFormModal({ isOpen, onClose, initialData = null, 
     setIsSubmitting(true);
 
     try {
-      // Build headers object
       const headersObject = {};
       for (const item of headersList) {
         const trimmedKey = item.key.trim();
@@ -138,6 +138,7 @@ export default function MonitorFormModal({ isOpen, onClose, initialData = null, 
         expectedStatusMin: Number(expectedStatusMin),
         expectedStatusMax: Number(expectedStatusMax),
         headers: headersObject,
+        body: ['POST', 'PUT'].includes(method) && body.trim() ? body : null,
         notificationChannelIds: selectedChannels,
       };
 
@@ -150,7 +151,14 @@ export default function MonitorFormModal({ isOpen, onClose, initialData = null, 
       onSuccess && onSuccess();
       onClose();
     } catch (err) {
-      const msg = err.response?.data?.message || err.message || 'Failed to save monitor';
+      const details = err.response?.data?.error?.details;
+      const detailMsg = Array.isArray(details) && details.length > 0 ? details[0].issue : null;
+      const msg =
+        detailMsg ||
+        err.response?.data?.error?.message ||
+        err.response?.data?.message ||
+        err.message ||
+        'Failed to save monitor';
       setErrorMessage(msg);
     } finally {
       setIsSubmitting(false);
@@ -170,40 +178,46 @@ export default function MonitorFormModal({ isOpen, onClose, initialData = null, 
           onClose();
         }
       }}
-      className="backdrop:bg-black/60 bg-panel text-text-primary border border-subtle rounded-md shadow-2xl p-0 w-full max-w-xl open:flex open:flex-col m-auto overflow-hidden"
+      className="backdrop:bg-slate-900/50 backdrop:backdrop-blur-xs bg-panel text-text-primary border border-subtle rounded-[28px] shadow-2xl p-0 w-full max-w-xl open:flex open:flex-col m-auto overflow-hidden"
       aria-labelledby="monitor-modal-title"
     >
-      <header className="p-4 sm:p-5 border-b border-subtle flex items-center justify-between">
-        <div>
-          <h2 id="monitor-modal-title" className="text-base font-semibold text-text-primary">
-            {initialData ? 'Configure Monitor' : 'Create New Target'}
-          </h2>
-          <p className="text-xs text-text-secondary mt-0.5 font-mono">
-            Configure telemetry checks and notification dispatch rules
-          </p>
+      <header className="px-6 py-5 border-b border-subtle flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span
+            className="w-2.5 h-2.5 rounded-full bg-status-up-dot ring-4 ring-status-up-dot/20 shrink-0"
+            aria-hidden="true"
+          />
+          <div>
+            <h2 id="monitor-modal-title" className="text-base font-semibold text-text-primary">
+              {initialData ? 'Configure Monitor' : 'Create New Target'}
+            </h2>
+            <p className="text-xs text-text-secondary mt-0.5">
+              Configure telemetry checks and Discord alert channels
+            </p>
+          </div>
         </div>
         <button
           type="button"
           onClick={onClose}
-          className="text-text-secondary hover:text-text-primary p-1 rounded hover:bg-subtle/30 text-lg leading-none transition-colors"
+          className="w-8 h-8 rounded-full bg-card hover:bg-subtle/60 text-text-secondary hover:text-text-primary flex items-center justify-center text-lg leading-none transition-colors"
           aria-label="Close dialog"
         >
           &times;
         </button>
       </header>
 
-      <form onSubmit={handleSubmit} className="p-4 sm:p-5 flex flex-col gap-4 overflow-y-auto max-h-[75vh]">
+      <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4 overflow-y-auto max-h-[75vh]">
         {errorMessage && (
           <div
             role="alert"
-            className="p-3 text-xs font-mono rounded border border-status-down bg-status-down-bg text-status-down-text"
+            className="p-3.5 text-xs font-mono rounded-2xl border border-status-down/30 bg-status-down-bg text-status-down-text"
           >
             {errorMessage}
           </div>
         )}
 
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="monitor-name" className="text-xs font-mono font-medium text-text-secondary">
+          <label htmlFor="monitor-name" className="text-xs font-semibold text-text-secondary">
             Display Label <span className="text-status-down">*</span>
           </label>
           <input
@@ -212,33 +226,32 @@ export default function MonitorFormModal({ isOpen, onClose, initialData = null, 
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Primary Auth Service"
-            className="w-full bg-canvas border border-subtle rounded px-3 py-2 text-sm text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:border-amber-brand"
+            placeholder="e.g. Production Auth Service"
+            className="w-full bg-card border border-subtle/80 rounded-2xl px-3.5 py-2.5 text-sm text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:border-accent"
           />
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="sm:w-32 flex flex-col gap-1.5">
-            <label htmlFor="monitor-method" className="text-xs font-mono font-medium text-text-secondary">
+            <label htmlFor="monitor-method" className="text-xs font-semibold text-text-secondary">
               Method
             </label>
             <select
               id="monitor-method"
               value={method}
               onChange={(e) => setMethod(e.target.value)}
-              className="bg-canvas border border-subtle rounded px-3 py-2 text-sm font-mono text-text-primary focus:outline-none focus:border-amber-brand"
+              className="bg-card border border-subtle/80 rounded-2xl px-3.5 py-2.5 text-sm font-mono text-text-primary focus:outline-none focus:border-accent"
             >
               <option value="GET">GET</option>
               <option value="POST">POST</option>
               <option value="HEAD">HEAD</option>
               <option value="PUT">PUT</option>
-              <option value="PATCH">PATCH</option>
               <option value="DELETE">DELETE</option>
             </select>
           </div>
 
           <div className="flex-1 flex flex-col gap-1.5">
-            <label htmlFor="monitor-url" className="text-xs font-mono font-medium text-text-secondary">
+            <label htmlFor="monitor-url" className="text-xs font-semibold text-text-secondary">
               Target URL <span className="text-status-down">*</span>
             </label>
             <input
@@ -248,32 +261,32 @@ export default function MonitorFormModal({ isOpen, onClose, initialData = null, 
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="https://api.example.com/health"
-              className="w-full bg-canvas border border-subtle rounded px-3 py-2 text-sm font-mono text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:border-amber-brand"
+              className="w-full bg-card border border-subtle/80 rounded-2xl px-3.5 py-2.5 text-sm font-mono text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:border-accent"
             />
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="monitor-interval" className="text-xs font-mono font-medium text-text-secondary">
+            <label htmlFor="monitor-interval" className="text-xs font-semibold text-text-secondary">
               Check Interval
             </label>
             <select
               id="monitor-interval"
               value={intervalSeconds}
               onChange={(e) => setIntervalSeconds(Number(e.target.value))}
-              className="bg-canvas border border-subtle rounded px-3 py-2 text-sm font-mono text-text-primary focus:outline-none focus:border-amber-brand"
+              className="bg-card border border-subtle/80 rounded-2xl px-3.5 py-2.5 text-sm font-mono text-text-primary focus:outline-none focus:border-accent"
             >
-              <option value={30}>Every 30 seconds</option>
-              <option value={60}>Every 1 minute</option>
-              <option value={120}>Every 2 minutes</option>
-              <option value={300}>Every 5 minutes</option>
-              <option value={600}>Every 10 minutes</option>
+              <option value={60}>Every 1 minute (60s)</option>
+              <option value={180}>Every 3 minutes (180s)</option>
+              <option value={300}>Every 5 minutes (300s)</option>
+              <option value={900}>Every 15 minutes (900s)</option>
+              <option value={1800}>Every 30 minutes (1800s)</option>
             </select>
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="monitor-timeout" className="text-xs font-mono font-medium text-text-secondary">
+            <label htmlFor="monitor-timeout" className="text-xs font-semibold text-text-secondary">
               Timeout (ms)
             </label>
             <input
@@ -284,13 +297,13 @@ export default function MonitorFormModal({ isOpen, onClose, initialData = null, 
               step={500}
               value={timeoutMs}
               onChange={(e) => setTimeoutMs(Number(e.target.value))}
-              className="w-full bg-canvas border border-subtle rounded px-3 py-2 text-sm font-mono text-text-primary focus:outline-none focus:border-amber-brand"
+              className="w-full bg-card border border-subtle/80 rounded-2xl px-3.5 py-2.5 text-sm font-mono text-text-primary focus:outline-none focus:border-accent"
             />
           </div>
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <span className="text-xs font-mono font-medium text-text-secondary">
+          <span className="text-xs font-semibold text-text-secondary">
             Expected HTTP Status Code Range
           </span>
           <div className="flex items-center gap-3">
@@ -300,7 +313,7 @@ export default function MonitorFormModal({ isOpen, onClose, initialData = null, 
               max={599}
               value={expectedStatusMin}
               onChange={(e) => setExpectedStatusMin(Number(e.target.value))}
-              className="w-24 bg-canvas border border-subtle rounded px-3 py-2 text-sm font-mono text-text-primary focus:outline-none focus:border-amber-brand text-center"
+              className="w-24 bg-card border border-subtle/80 rounded-2xl px-3 py-2 text-sm font-mono text-text-primary focus:outline-none focus:border-accent text-center"
               aria-label="Minimum status code"
             />
             <span className="text-text-secondary font-mono text-xs">to</span>
@@ -310,22 +323,35 @@ export default function MonitorFormModal({ isOpen, onClose, initialData = null, 
               max={599}
               value={expectedStatusMax}
               onChange={(e) => setExpectedStatusMax(Number(e.target.value))}
-              className="w-24 bg-canvas border border-subtle rounded px-3 py-2 text-sm font-mono text-text-primary focus:outline-none focus:border-amber-brand text-center"
+              className="w-24 bg-card border border-subtle/80 rounded-2xl px-3 py-2 text-sm font-mono text-text-primary focus:outline-none focus:border-accent text-center"
               aria-label="Maximum status code"
             />
           </div>
         </div>
 
-        {/* Custom HTTP Headers */}
-        <div className="flex flex-col gap-2 pt-2 border-t border-subtle">
+        {['POST', 'PUT'].includes(method) && (
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="monitor-body" className="text-xs font-semibold text-text-secondary">
+              Request Body (Optional)
+            </label>
+            <textarea
+              id="monitor-body"
+              rows={2}
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              placeholder='{"event": "ping"}'
+              className="w-full bg-card border border-subtle/80 rounded-2xl px-3.5 py-2 text-xs font-mono text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:border-accent"
+            />
+          </div>
+        )}
+
+        <div className="flex flex-col gap-2 pt-3 border-t border-subtle">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-mono font-medium text-text-secondary">
-              Custom HTTP Headers
-            </span>
+            <span className="text-xs font-semibold text-text-secondary">Custom HTTP Headers</span>
             <button
               type="button"
               onClick={handleAddHeader}
-              className="text-xs font-mono text-amber-brand hover:underline"
+              className="text-xs font-semibold text-accent hover:underline"
             >
               + Add Header
             </button>
@@ -337,20 +363,20 @@ export default function MonitorFormModal({ isOpen, onClose, initialData = null, 
                 placeholder="Header (e.g. Authorization)"
                 value={header.key}
                 onChange={(e) => handleHeaderChange(idx, 'key', e.target.value)}
-                className="flex-1 bg-canvas border border-subtle rounded px-2.5 py-1.5 text-xs font-mono text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:border-amber-brand"
+                className="flex-1 bg-card border border-subtle/80 rounded-2xl px-3 py-2 text-xs font-mono text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:border-accent"
               />
               <input
                 type="text"
                 placeholder="Value"
                 value={header.value}
                 onChange={(e) => handleHeaderChange(idx, 'value', e.target.value)}
-                className="flex-1 bg-canvas border border-subtle rounded px-2.5 py-1.5 text-xs font-mono text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:border-amber-brand"
+                className="flex-1 bg-card border border-subtle/80 rounded-2xl px-3 py-2 text-xs font-mono text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:border-accent"
               />
               {headersList.length > 1 && (
                 <button
                   type="button"
                   onClick={() => handleRemoveHeader(idx)}
-                  className="text-text-secondary hover:text-status-down text-base px-1"
+                  className="w-7 h-7 rounded-full bg-card text-text-secondary hover:text-status-down flex items-center justify-center text-sm"
                   aria-label="Remove header"
                 >
                   &times;
@@ -360,31 +386,28 @@ export default function MonitorFormModal({ isOpen, onClose, initialData = null, 
           ))}
         </div>
 
-        {/* Discord Notification Channels */}
-        <div className="flex flex-col gap-2 pt-2 border-t border-subtle">
-          <span className="text-xs font-mono font-medium text-text-secondary">
-            Discord Notification Channels
-          </span>
+        <div className="flex flex-col gap-2 pt-3 border-t border-subtle">
+          <span className="text-xs font-semibold text-text-secondary">Discord Notification Channels</span>
           {isLoadingChannels ? (
             <div className="text-xs font-mono text-text-secondary py-1">Loading webhook channels...</div>
           ) : availableChannels.length === 0 ? (
-            <div className="text-xs font-mono text-text-secondary py-1 bg-subtle/20 px-3 rounded">
-              No webhook channels configured yet. Create one in Notifications to receive downtime alerts.
+            <div className="text-xs text-text-secondary py-2.5 bg-card px-3.5 rounded-2xl">
+              No webhook channels configured yet. Create one in Integrations to receive downtime alerts.
             </div>
           ) : (
             <div className="flex flex-col gap-1.5 max-h-36 overflow-y-auto">
               {availableChannels.map((channel) => (
                 <label
                   key={channel.id}
-                  className="flex items-center gap-2.5 text-xs font-mono text-text-primary cursor-pointer hover:bg-subtle/20 p-1.5 rounded"
+                  className="flex items-center gap-2.5 text-xs font-mono text-text-primary cursor-pointer hover:bg-card p-2 rounded-2xl transition-colors"
                 >
                   <input
                     type="checkbox"
                     checked={selectedChannels.includes(channel.id)}
                     onChange={() => handleChannelToggle(channel.id)}
-                    className="rounded border-subtle text-amber-brand focus:ring-0"
+                    className="rounded border-subtle text-accent focus:ring-0"
                   />
-                  <span className="font-medium">{channel.name}</span>
+                  <span className="font-semibold font-sans">{channel.name}</span>
                   <span className="text-text-secondary text-[11px] truncate">{channel.webhookUrl}</span>
                 </label>
               ))}
@@ -392,19 +415,19 @@ export default function MonitorFormModal({ isOpen, onClose, initialData = null, 
           )}
         </div>
 
-        <footer className="pt-4 border-t border-subtle flex items-center justify-end gap-3">
+        <footer className="pt-4 border-t border-subtle flex items-center justify-end gap-2.5">
           <button
             type="button"
             onClick={onClose}
             disabled={isSubmitting}
-            className="border border-subtle bg-canvas hover:bg-subtle/30 text-text-secondary px-3.5 py-2 text-xs font-mono rounded transition-colors"
+            className="border border-subtle bg-card hover:bg-canvas text-text-secondary px-4 py-2 text-xs font-semibold rounded-full transition-colors"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isSubmitting}
-            className="border border-amber-brand bg-amber-brand text-amber-text px-4 py-2 text-xs font-mono rounded font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="bg-accent hover:bg-accent-hover text-accent-text px-5 py-2 text-xs font-semibold rounded-full transition-colors disabled:opacity-50"
           >
             {isSubmitting ? 'Saving...' : initialData ? 'Update Monitor' : 'Create Monitor'}
           </button>
