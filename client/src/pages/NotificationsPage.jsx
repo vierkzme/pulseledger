@@ -7,7 +7,6 @@ export default function NotificationsPage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [feedbackMessage, setFeedbackMessage] = useState({ type: '', text: '' });
 
-  // Dialog State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingChannel, setEditingChannel] = useState(null);
   const [channelName, setChannelName] = useState('');
@@ -15,9 +14,7 @@ export default function NotificationsPage() {
   const [modalError, setModalError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Testing State
   const [testingId, setTestingId] = useState(null);
-
   const dialogRef = useRef(null);
 
   const fetchChannels = async () => {
@@ -29,7 +26,7 @@ export default function NotificationsPage() {
         setChannels(res.data.data || []);
       }
     } catch (err) {
-      setErrorMessage(err.response?.data?.message || err.message || 'Failed to load notification channels');
+      setErrorMessage(err.response?.data?.error?.message || err.message || 'Failed to load notification channels');
     } finally {
       setIsLoading(false);
     }
@@ -81,7 +78,10 @@ export default function NotificationsPage() {
       return;
     }
 
-    if (!trimmedUrl.startsWith('https://discord.com/api/webhooks/') && !trimmedUrl.startsWith('https://discordapp.com/api/webhooks/')) {
+    if (
+      !trimmedUrl.startsWith('https://discord.com/api/webhooks/') &&
+      !trimmedUrl.startsWith('https://discordapp.com/api/webhooks/')
+    ) {
       setModalError('Webhook URL must begin with https://discord.com/api/webhooks/');
       return;
     }
@@ -104,7 +104,7 @@ export default function NotificationsPage() {
       closeModal();
       fetchChannels();
     } catch (err) {
-      setModalError(err.response?.data?.message || 'Failed to save webhook channel');
+      setModalError(err.response?.data?.error?.message || err.message || 'Failed to save webhook channel');
     } finally {
       setIsSubmitting(false);
     }
@@ -120,7 +120,10 @@ export default function NotificationsPage() {
       setFeedbackMessage({ type: 'success', text: `Channel "${channel.name}" deleted` });
       fetchChannels();
     } catch (err) {
-      setFeedbackMessage({ type: 'error', text: err.response?.data?.message || 'Failed to delete channel' });
+      setFeedbackMessage({
+        type: 'error',
+        text: err.response?.data?.error?.message || err.message || 'Failed to delete channel',
+      });
     }
   };
 
@@ -136,7 +139,7 @@ export default function NotificationsPage() {
     } catch (err) {
       setFeedbackMessage({
         type: 'error',
-        text: err.response?.data?.message || `Failed to send test alert to "${channel.name}"`,
+        text: err.response?.data?.error?.message || err.message || `Failed to send test alert to "${channel.name}"`,
       });
     } finally {
       setTestingId(null);
@@ -156,42 +159,46 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="py-4 flex flex-col gap-6 font-mono">
-      {/* Header Panel */}
-      <header className="bg-panel border border-subtle rounded-md p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-base sm:text-lg font-semibold text-text-primary tracking-tight">
-            Notification Channels
-          </h1>
-          <p className="text-xs text-text-secondary mt-1">
-            Configure Discord webhooks for instant downtime and recovery telemetry alerts
-          </p>
+    <div className="py-1 flex flex-col gap-5">
+      <section className="bg-panel border border-subtle/80 rounded-[28px] p-5 sm:p-6 shadow-soft flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <span
+            className="w-2.5 h-2.5 rounded-full bg-status-up-dot ring-4 ring-status-up-dot/20 shrink-0"
+            aria-hidden="true"
+          />
+          <div>
+            <h1 className="text-lg sm:text-xl font-semibold text-text-primary tracking-tight">
+              Discord Alert Integrations
+            </h1>
+            <p className="text-xs text-text-secondary mt-0.5">
+              Configure Discord webhooks for instant downtime and recovery telemetry alerts
+            </p>
+          </div>
         </div>
 
         <button
           type="button"
           onClick={openCreateModal}
-          className="border border-amber-brand bg-amber-brand text-amber-text px-4 py-2 text-xs font-semibold rounded transition-opacity hover:opacity-90 self-start sm:self-auto"
+          className="bg-accent hover:bg-accent-hover text-accent-text px-5 py-2.5 text-xs font-semibold rounded-full transition-colors self-start sm:self-auto"
         >
           + Add Discord Webhook
         </button>
-      </header>
+      </section>
 
-      {/* Global Feedback Alert */}
       {feedbackMessage.text && (
         <div
           role="status"
-          className={`p-3 text-xs rounded border flex items-center justify-between ${
+          className={`px-5 py-3.5 text-xs font-mono rounded-[20px] border flex items-center justify-between ${
             feedbackMessage.type === 'success'
-              ? 'border-status-up bg-status-up-bg text-status-up'
-              : 'border-status-down bg-status-down-bg text-status-down-text'
+              ? 'border-status-up/25 bg-status-up-bg text-status-up'
+              : 'border-status-down/25 bg-status-down-bg text-status-down-text'
           }`}
         >
           <span>{feedbackMessage.text}</span>
           <button
             type="button"
             onClick={() => setFeedbackMessage({ type: '', text: '' })}
-            className="hover:opacity-75 text-sm ml-2"
+            className="hover:opacity-75 text-base leading-none ml-2"
             aria-label="Dismiss message"
           >
             &times;
@@ -199,107 +206,105 @@ export default function NotificationsPage() {
         </div>
       )}
 
-      {/* Global Error Banner */}
       {errorMessage && (
         <div
           role="alert"
-          className="p-3 text-xs rounded border border-status-down bg-status-down-bg text-status-down-text flex items-center justify-between"
+          className="px-5 py-3.5 text-xs font-mono rounded-[20px] border border-status-down/25 bg-status-down-bg text-status-down-text flex items-center justify-between"
         >
           <span>{errorMessage}</span>
           <button
             type="button"
             onClick={fetchChannels}
-            className="underline hover:no-underline font-semibold"
+            className="px-3 py-1 rounded-full bg-panel border border-subtle text-text-primary font-semibold"
           >
             Retry
           </button>
         </div>
       )}
 
-      {/* Loading Skeleton */}
       {isLoading && (
-        <div className="bg-panel border border-subtle rounded-md p-6 flex flex-col gap-3 animate-pulse">
-          <div className="w-48 h-4 bg-subtle/50 rounded"></div>
-          <div className="w-full h-12 bg-subtle/30 rounded"></div>
-          <div className="w-full h-12 bg-subtle/30 rounded"></div>
+        <div className="bg-panel border border-subtle/80 rounded-[28px] p-6 flex flex-col gap-3 animate-pulse shadow-soft">
+          <div className="w-48 h-4 bg-card rounded-full"></div>
+          <div className="w-full h-14 bg-card rounded-2xl"></div>
+          <div className="w-full h-14 bg-card rounded-2xl"></div>
         </div>
       )}
 
-      {/* Empty State */}
       {!isLoading && channels.length === 0 && (
-        <div className="bg-panel border border-dashed border-subtle rounded-md p-10 text-center flex flex-col items-center justify-center">
-          <div className="w-12 h-12 rounded bg-amber-brand/10 border border-amber-brand/20 flex items-center justify-center text-amber-brand mb-3 font-bold text-lg">
+        <div className="bg-panel border border-dashed border-subtle rounded-[28px] p-10 text-center flex flex-col items-center justify-center shadow-soft">
+          <div className="w-12 h-12 rounded-full bg-card border border-subtle flex items-center justify-center text-accent mb-3 font-mono font-bold text-base">
             DC
           </div>
           <h2 className="text-base font-semibold text-text-primary">No Webhook Channels Configured</h2>
-          <p className="text-xs text-text-secondary max-w-md mt-1 mb-4">
+          <p className="text-xs text-text-secondary max-w-md mt-1 mb-5">
             Connect your Discord server by providing an incoming webhook URL. PulseLedger dispatches rich alert cards
             the moment an endpoint fails confirmation retries.
           </p>
           <button
             type="button"
             onClick={openCreateModal}
-            className="border border-amber-brand bg-amber-brand text-amber-text px-4 py-2 text-xs font-semibold rounded transition-opacity hover:opacity-90"
+            className="bg-accent hover:bg-accent-hover text-accent-text px-5 py-2.5 text-xs font-semibold rounded-full transition-colors"
           >
             Connect Discord Webhook
           </button>
         </div>
       )}
 
-      {/* Channels List Table */}
       {!isLoading && channels.length > 0 && (
-        <div className="bg-panel border border-subtle rounded-md overflow-hidden">
-          <div className="p-4 border-b border-subtle flex items-center justify-between">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-text-primary">
-              Active Dispatch Channels
-            </h2>
-            <span className="text-xs text-text-secondary">{channels.length} configured</span>
+        <section className="bg-panel border border-subtle/80 rounded-[28px] overflow-hidden shadow-soft">
+          <div className="p-5 sm:p-6 border-b border-subtle flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-text-primary">Active Dispatch Channels</h2>
+            <span className="px-3 py-1 rounded-full bg-card text-xs font-mono text-text-secondary">
+              {channels.length} configured
+            </span>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="border-b border-subtle bg-subtle/20 text-text-secondary">
-                  <th className="py-2.5 px-4 font-medium">Channel Name</th>
-                  <th className="py-2.5 px-4 font-medium">Webhook Target</th>
-                  <th className="py-2.5 px-4 font-medium">Created</th>
-                  <th className="py-2.5 px-4 font-medium text-right">Actions</th>
+                <tr className="border-b border-subtle bg-card/70 text-text-secondary font-mono">
+                  <th className="py-3 px-5 font-medium">Channel Name</th>
+                  <th className="py-3 px-5 font-medium">Webhook Target</th>
+                  <th className="py-3 px-5 font-medium">Created</th>
+                  <th className="py-3 px-5 font-medium text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-subtle">
+              <tbody className="divide-y divide-subtle/70">
                 {channels.map((ch) => (
-                  <tr key={ch.id} className="hover:bg-subtle/10 transition-colors">
-                    <td className="py-3 px-4 font-semibold text-text-primary flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-sm bg-status-up" aria-hidden="true"></span>
-                      {ch.name}
+                  <tr key={ch.id} className="hover:bg-card/40 transition-colors">
+                    <td className="py-3.5 px-5 font-semibold text-text-primary">
+                      <div className="flex items-center gap-2.5">
+                        <span className="w-2 h-2 rounded-full bg-status-up-dot" aria-hidden="true" />
+                        <span>{ch.name}</span>
+                      </div>
                     </td>
-                    <td className="py-3 px-4 text-text-secondary font-mono truncate max-w-xs" title={ch.webhookUrl}>
+                    <td className="py-3.5 px-5 text-text-secondary font-mono truncate max-w-xs" title={ch.webhookUrl}>
                       {maskWebhook(ch.webhookUrl)}
                     </td>
-                    <td className="py-3 px-4 text-text-secondary whitespace-nowrap">
+                    <td className="py-3.5 px-5 text-text-secondary font-mono whitespace-nowrap">
                       {new Date(ch.createdAt).toLocaleDateString()}
                     </td>
-                    <td className="py-3 px-4 text-right whitespace-nowrap">
+                    <td className="py-3.5 px-5 text-right whitespace-nowrap">
                       <div className="inline-flex items-center gap-2">
                         <button
                           type="button"
                           disabled={testingId === ch.id}
                           onClick={() => handleTestChannel(ch)}
-                          className="px-2.5 py-1 text-xs border border-subtle bg-canvas hover:bg-subtle/30 text-text-primary rounded transition-colors disabled:opacity-50"
+                          className="px-3 py-1.5 text-xs font-medium border border-subtle bg-card hover:bg-canvas text-text-primary rounded-full transition-colors disabled:opacity-50"
                         >
                           {testingId === ch.id ? 'Sending...' : 'Test'}
                         </button>
                         <button
                           type="button"
                           onClick={() => openEditModal(ch)}
-                          className="px-2.5 py-1 text-xs border border-subtle bg-canvas hover:bg-subtle/30 text-text-primary rounded transition-colors"
+                          className="px-3 py-1.5 text-xs font-medium border border-subtle bg-card hover:bg-canvas text-text-primary rounded-full transition-colors"
                         >
                           Edit
                         </button>
                         <button
                           type="button"
                           onClick={() => handleDeleteChannel(ch)}
-                          className="px-2.5 py-1 text-xs border border-status-down bg-status-down-bg text-status-down-text rounded transition-opacity hover:opacity-90 font-medium"
+                          className="px-3 py-1.5 text-xs font-semibold border border-status-down/20 bg-status-down-bg text-status-down-text rounded-full transition-opacity hover:opacity-90"
                         >
                           Delete
                         </button>
@@ -310,10 +315,9 @@ export default function NotificationsPage() {
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
       )}
 
-      {/* Modal Dialog for Add / Edit Webhook */}
       <dialog
         ref={dialogRef}
         closedby="any"
@@ -326,40 +330,46 @@ export default function NotificationsPage() {
             closeModal();
           }
         }}
-        className="backdrop:bg-black/60 bg-panel text-text-primary border border-subtle rounded-md shadow-2xl p-0 w-full max-w-md open:flex open:flex-col m-auto overflow-hidden"
+        className="backdrop:bg-slate-900/50 backdrop:backdrop-blur-xs bg-panel text-text-primary border border-subtle rounded-[28px] shadow-2xl p-0 w-full max-w-md open:flex open:flex-col m-auto overflow-hidden"
         aria-labelledby="channel-dialog-title"
       >
-        <header className="p-4 sm:p-5 border-b border-subtle flex items-center justify-between">
-          <div>
-            <h2 id="channel-dialog-title" className="text-base font-semibold text-text-primary">
-              {editingChannel ? 'Edit Discord Channel' : 'Add Discord Webhook'}
-            </h2>
-            <p className="text-xs text-text-secondary mt-0.5">
-              Paste the webhook URL copied from Discord channel settings
-            </p>
+        <header className="px-6 py-5 border-b border-subtle flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span
+              className="w-2.5 h-2.5 rounded-full bg-status-up-dot ring-4 ring-status-up-dot/20 shrink-0"
+              aria-hidden="true"
+            />
+            <div>
+              <h2 id="channel-dialog-title" className="text-base font-semibold text-text-primary">
+                {editingChannel ? 'Edit Discord Channel' : 'Add Discord Webhook'}
+              </h2>
+              <p className="text-xs text-text-secondary mt-0.5">
+                Paste the webhook URL copied from Discord channel settings
+              </p>
+            </div>
           </div>
           <button
             type="button"
             onClick={closeModal}
-            className="text-text-secondary hover:text-text-primary p-1 rounded hover:bg-subtle/30 text-lg leading-none"
+            className="w-8 h-8 rounded-full bg-card hover:bg-subtle/60 text-text-secondary hover:text-text-primary flex items-center justify-center text-lg leading-none"
             aria-label="Close dialog"
           >
             &times;
           </button>
         </header>
 
-        <form onSubmit={handleSaveChannel} className="p-4 sm:p-5 flex flex-col gap-4">
+        <form onSubmit={handleSaveChannel} className="p-6 flex flex-col gap-4">
           {modalError && (
             <div
               role="alert"
-              className="p-3 text-xs rounded border border-status-down bg-status-down-bg text-status-down-text"
+              className="p-3 text-xs font-mono rounded-2xl border border-status-down/30 bg-status-down-bg text-status-down-text"
             >
               {modalError}
             </div>
           )}
 
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="ch-name" className="text-xs font-medium text-text-secondary">
+            <label htmlFor="ch-name" className="text-xs font-semibold text-text-secondary">
               Channel Label <span className="text-status-down">*</span>
             </label>
             <input
@@ -369,12 +379,12 @@ export default function NotificationsPage() {
               value={channelName}
               onChange={(e) => setChannelName(e.target.value)}
               placeholder="e.g. #ops-incidents"
-              className="w-full bg-canvas border border-subtle rounded px-3 py-2 text-sm text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:border-amber-brand"
+              className="w-full bg-card border border-subtle/80 rounded-2xl px-3.5 py-2.5 text-sm text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:border-accent"
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="ch-url" className="text-xs font-medium text-text-secondary">
+            <label htmlFor="ch-url" className="text-xs font-semibold text-text-secondary">
               Discord Webhook URL <span className="text-status-down">*</span>
             </label>
             <input
@@ -384,23 +394,23 @@ export default function NotificationsPage() {
               value={webhookUrl}
               onChange={(e) => setWebhookUrl(e.target.value)}
               placeholder="https://discord.com/api/webhooks/..."
-              className="w-full bg-canvas border border-subtle rounded px-3 py-2 text-sm text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:border-amber-brand"
+              className="w-full bg-card border border-subtle/80 rounded-2xl px-3.5 py-2.5 text-sm font-mono text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:border-accent"
             />
           </div>
 
-          <footer className="pt-4 border-t border-subtle flex items-center justify-end gap-3">
+          <footer className="pt-4 border-t border-subtle flex items-center justify-end gap-2.5">
             <button
               type="button"
               onClick={closeModal}
               disabled={isSubmitting}
-              className="border border-subtle bg-canvas hover:bg-subtle/30 text-text-secondary px-3.5 py-2 text-xs rounded transition-colors"
+              className="border border-subtle bg-card hover:bg-canvas text-text-secondary px-4 py-2 text-xs font-semibold rounded-full transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="border border-amber-brand bg-amber-brand text-amber-text px-4 py-2 text-xs font-medium rounded transition-opacity hover:opacity-90 disabled:opacity-50"
+              className="bg-accent hover:bg-accent-hover text-accent-text px-5 py-2 text-xs font-semibold rounded-full transition-colors disabled:opacity-50"
             >
               {isSubmitting ? 'Saving...' : editingChannel ? 'Update Webhook' : 'Save Webhook'}
             </button>

@@ -7,17 +7,21 @@ export default {
       colors: {
         canvas: 'var(--bg-canvas)',
         panel: 'var(--bg-panel)',
+        card: 'var(--bg-card)',
         subtle: 'var(--border-subtle)',
         'text-primary': 'var(--text-primary)',
         'text-secondary': 'var(--text-secondary)',
-        amber: {
-          brand: 'var(--accent-amber)',
-          text: 'var(--accent-amber-text)',
+        accent: {
+          DEFAULT: 'var(--accent-primary)',
+          hover: 'var(--accent-hover)',
+          text: 'var(--accent-text)',
         },
         status: {
           up: 'var(--status-up)',
+          'up-dot': 'var(--status-up-dot)',
           'up-bg': 'var(--status-up-bg)',
           down: 'var(--status-down)',
+          'down-dot': 'var(--status-down-dot)',
           'down-bg': 'var(--status-down-bg)',
           'down-text': 'var(--status-down-text)',
           paused: 'var(--status-paused)',
@@ -26,13 +30,12 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['IBM Plex Sans', 'sans-serif'],
+        sans: ['Plus Jakarta Sans', 'sans-serif'],
         mono: ['IBM Plex Mono', 'monospace'],
       },
-      borderRadius: {
-        sm: '2px',
-        DEFAULT: '4px',
-        md: '6px',
+      boxShadow: {
+        soft: '0 4px 20px -4px rgba(15, 23, 42, 0.05)',
+        xs: '0 1px 3px rgba(15, 23, 42, 0.04)',
       },
     },
   },

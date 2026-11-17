@@ -6,23 +6,23 @@ export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem('pulseledger_theme');
     if (saved === 'light' || saved === 'dark') return saved;
-    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    return 'light';
   });
 
   useEffect(() => {
     localStorage.setItem('pulseledger_theme', theme);
     const root = document.documentElement;
-    if (theme === 'light') {
-      root.classList.add('light');
-      root.style.colorScheme = 'light';
-    } else {
-      root.classList.remove('light');
+    if (theme === 'dark') {
+      root.classList.add('dark');
       root.style.colorScheme = 'dark';
+    } else {
+      root.classList.remove('dark');
+      root.style.colorScheme = 'light';
     }
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
   };
 
   return (

@@ -12,15 +12,15 @@ pulseledger/
 │   ├── prisma/             # Schema definitions, migrations, and seed scripts
 │   ├── src/
 │   │   ├── controllers/    # Route handlers for auth, monitors, and channels
-│   │   ├── services/       # Domain business logic and database queries
+│   │   ├── services/       # Domain logic, metrics, and Discord embed builders
 │   │   ├── worker/         # Concurrency-limited background probe scheduler
-│   │   ├── utils/          # SSRF URL protection and Discord embed builders
+│   │   ├── utils/          # SSRF URL protection, JWT, and password hashing
 │   │   └── validators/     # Zod request validation schemas
 │   └── test/               # Vitest integration and service test suites
 ├── client/                 # React 18 + Vite Frontend Dashboard
 │   ├── src/
 │   │   ├── components/     # Telemetry strips, modals, charts, and tables
-│   │   ├── pages/          # Dashboard, Monitor Detail, Webhooks, and Auth
+│   │   ├── pages/          # Dashboard, Monitor Detail, Webhooks, Settings, and Auth
 │   │   ├── context/        # Authentication and Dark/Light Theme providers
 │   │   └── api/            # Axios HTTP client with JWT interceptor
 │   └── nginx.conf          # Reverse proxy and SPA routing config
@@ -32,16 +32,16 @@ pulseledger/
 - **High-Precision Timing**: Latency measured via `process.hrtime.bigint()` for sub-millisecond precision.
 - **Anti-Flapping Retry Confirmation**: Requires consecutive failed checks before declaring an endpoint down, preventing false alarms from momentary network blips.
 - **SSRF Defense Engine**: DNS resolution filter blocking requests to private IPs (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), link-local IPs, AWS instance metadata (`169.254.169.254`), and loopback addresses.
-- **25-Tick Recent Telemetry Strip**: A visual micro-heartbeat bar on every monitor row communicating status and latency profile at a glance.
+- **25-Tick Recent Telemetry Strip**: A visual micro-heartbeat bar on every monitor communicating status and latency profile at a glance.
 - **Interactive Latency Area Charts**: Visualizes round-trip network response times across 1-hour, 24-hour, 7-day, and 30-day time horizons with Recharts.
 - **Incident and Probe Ledger**: Complete audit log of ongoing and resolved outages with calculated durations, alongside paginated raw HTTP probe logs.
 - **Discord Alert Webhooks**: Dispatches embedded alert cards with color-coded severity states, target URLs, HTTP response codes, and resolution durations.
-- **Dual Console Themes**: Carbon Console (Dark) and Paper Ledger (Light) themes engineered to exceed WCAG AA contrast ratios (all normal text pairings exceed 4.5:1).
+- **Dual Studio Themes**: Soft Studio (Light default) and Midnight Studio (Dark toggle) themes engineered for high legibility and WCAG AA contrast.
 
 ## Tech Stack
 
-- **Backend**: Node.js 20, Express, PostgreSQL 16, Prisma ORM, Zod, Axios, JWT, bcryptjs
-- **Frontend**: React 18, Vite, Tailwind CSS, Recharts, React Router 6
+- **Backend**: Node.js 20, Express, PostgreSQL 16, Prisma ORM, Zod, JWT, bcryptjs
+- **Frontend**: React 18, Vite, Tailwind CSS, Recharts, React Router 6, Axios
 - **Deployment**: Docker, Docker Compose, Nginx
 
 ## Getting Started
@@ -64,12 +64,11 @@ Key environment variables:
 
 | Variable | Description | Default |
 | --- | --- | --- |
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql://uptime_user:uptime_secret@localhost:5432/uptime_monitor?schema=public` |
-| `JWT_SECRET` | HMAC secret for session tokens | `super_secret_jwt_pulseledger_production_key_change_me` |
-| `PORT` | API server port | `5000` |
-| `WORKER_TICK_INTERVAL_MS` | Telemetry probe scheduler tick rate | `5000` |
-| `WORKER_CONCURRENCY` | Maximum concurrent HTTP probes | `10` |
-| `ENABLE_WORKER` | Toggle background probe execution | `true` |
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql://uptime_user:uptime_secret@127.0.0.1:5432/uptime_monitor?schema=public&sslmode=disable` |
+| `JWT_SECRET` | HMAC secret for session tokens | `pulseledger_jwt_secret_dev_key` (override in `.env` / production) |
+| `PORT` | API server port | `4000` (local) / `5000` (Docker) |
+| `WORKER_TICK_MS` | Telemetry probe scheduler tick rate (ms) | `10000` |
+| `WORKER_CONCURRENCY` | Maximum concurrent HTTP probes | `20` (local) / `10` (Docker) |
 
 ### 2. Database Setup
 
@@ -79,7 +78,7 @@ Install server dependencies, apply database migrations, and seed initial demo ta
 cd server
 npm install
 npx prisma migrate dev
-npm run db:seed
+npm run prisma:seed
 ```
 
 The database seed provisions a demo operator account:
@@ -103,7 +102,7 @@ npm install
 npm run dev
 ```
 
-Open your browser at `http://localhost:5173`.
+Open your browser at `http://localhost:3000`.
 
 ### 4. Running Backend Unit Tests
 
@@ -125,7 +124,7 @@ docker compose up -d --build
 Access points:
 - **Web Console**: `http://localhost:80`
 - **Backend API**: `http://localhost:5000`
-- **PostgreSQL**: `localhost:5432`
+- **PostgreSQL**: internal Docker network service `postgres:5432` (use `docker-compose.dev.yml` to expose `localhost:5432` locally)
 
 To shut down services:
 
@@ -137,7 +136,8 @@ docker compose down
 
 All monitor and channel routes require an `Authorization: Bearer <token>` header.
 
-### Authentication
+### Health & Authentication
+- `GET /api/health`: Service uptime and health check
 - `POST /api/auth/register`: Register new operator
 - `POST /api/auth/login`: Authenticate and receive JWT
 - `GET /api/auth/me`: Retrieve current operator profile
@@ -155,9 +155,10 @@ All monitor and channel routes require an `Authorization: Bearer <token>` header
 - `GET /api/monitors/:id/incidents`: Get downtime incident ledger
 
 ### Discord Notifications
+Routes are available under `/api/channels` (aliased to `/api/notifications`):
 - `GET /api/channels`: List configured webhook channels
 - `POST /api/channels`: Register a Discord webhook URL
-- `PUT /api/channels/:id`: Update channel label or webhook target
+- `PUT /api/channels/:id`: Update channel label, webhook URL, or enabled state
 - `DELETE /api/channels/:id`: Remove webhook channel
 - `POST /api/channels/:id/test`: Dispatch a test notification card to Discord
 
