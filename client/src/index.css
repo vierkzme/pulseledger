@@ -3,45 +3,24 @@
 @tailwind utilities;
 
 :root {
-  /* Default: Dark Mode (Carbon Console) */
-  --bg-canvas: #0C0E12;
-  --bg-panel: #141820;
-  --border-subtle: #252B37;
-  --text-primary: #F1F5F9;
-  --text-secondary: #94A3B8;
-
-  --accent-amber: #F59E0B;
-  --accent-amber-text: #0C0E12;
-
-  --status-up: #22C55E;
-  --status-up-bg: #052E16;
-
-  --status-down: #EF4444;
-  --status-down-bg: #3B0707;
-  --status-down-text: #F87171;
-
-  --status-paused: #64748B;
-  --status-paused-bg: #1E293B;
-  --status-paused-text: #94A3B8;
-
-  color-scheme: dark;
-}
-
-html.light {
-  /* Light Mode (Paper Ledger) */
-  --bg-canvas: #F6F5F0;
+  /* Default: Soft Observability Studio (Light Mode) */
+  --bg-canvas: #EEF3F6;
   --bg-panel: #FFFFFF;
-  --border-subtle: #D6D3C9;
-  --text-primary: #14171F;
+  --bg-card: #EEF3F7;
+  --border-subtle: #DCE4EC;
+  --text-primary: #111827;
   --text-secondary: #475569;
 
-  --accent-amber: #B45309;
-  --accent-amber-text: #FFFFFF;
+  --accent-primary: #2563EB;
+  --accent-hover: #1D4ED8;
+  --accent-text: #FFFFFF;
 
   --status-up: #15803D;
+  --status-up-dot: #22C55E;
   --status-up-bg: #DCFCE7;
 
   --status-down: #B91C1C;
+  --status-down-dot: #EF4444;
   --status-down-bg: #FEE2E2;
   --status-down-text: #991B1B;
 
@@ -52,8 +31,36 @@ html.light {
   color-scheme: light;
 }
 
+html.dark {
+  /* Dark Mode Counterpart (Midnight Studio) */
+  --bg-canvas: #0B111B;
+  --bg-panel: #121A28;
+  --bg-card: #1A2436;
+  --border-subtle: #263349;
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
+
+  --accent-primary: #2563EB;
+  --accent-hover: #3B82F6;
+  --accent-text: #FFFFFF;
+
+  --status-up: #4ADE80;
+  --status-up-dot: #22C55E;
+  --status-up-bg: #064E3B;
+
+  --status-down: #F87171;
+  --status-down-dot: #EF4444;
+  --status-down-bg: #450A0A;
+  --status-down-text: #FCA5A5;
+
+  --status-paused: #94A3B8;
+  --status-paused-bg: #1E293B;
+  --status-paused-text: #CBD5E1;
+
+  color-scheme: dark;
+}
+
 @layer base {
-  /* Interaction affordances: cursor pointer for all enabled interactive controls */
   a[href],
   button,
   summary,
@@ -75,18 +82,15 @@ html.light {
     cursor: not-allowed;
   }
 
-  /* Accessible focus indicators: 2px amber outline across both themes */
   :focus-visible {
-    outline: 2px solid var(--accent-amber);
+    outline: 2px solid var(--accent-primary);
     outline-offset: 2px;
   }
 
-  /* Telemetry tabular numbers */
   .tabular-nums {
     font-variant-numeric: tabular-nums;
   }
 
-  /* Accessible custom scrollbars for telemetry feeds */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -96,14 +100,19 @@ html.light {
   }
   ::-webkit-scrollbar-thumb {
     background: var(--border-subtle);
-    border-radius: 3px;
+    border-radius: 9999px;
   }
   ::-webkit-scrollbar-thumb:hover {
     background: var(--text-secondary);
   }
 }
 
-/* Reduced motion preference */
+@media (max-width: 767px) {
+  html {
+    scroll-padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   ::before,
