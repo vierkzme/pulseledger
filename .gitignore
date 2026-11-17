@@ -19,7 +19,6 @@ build/
 !README.md
 !readme.md
 !**/README.md
-.agents/
 
 # IDE & OS
 .vscode/
