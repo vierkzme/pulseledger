@@ -19,11 +19,11 @@ function CustomChartTooltip({ active, payload, label }) {
       : label;
 
     return (
-      <div className="bg-panel border border-subtle p-2.5 rounded shadow-lg text-xs font-mono text-text-primary">
+      <div className="bg-panel border border-subtle p-3 rounded-2xl shadow-soft text-xs font-mono text-text-primary">
         <div className="text-text-secondary text-[11px] mb-1">{timeFormatted}</div>
         <div className="flex items-center gap-2">
           <span className="text-text-secondary">Latency:</span>
-          <span className="font-semibold text-amber-brand tabular-nums">
+          <span className="font-semibold text-accent tabular-nums">
             {latency !== null && latency !== undefined ? `${latency} ms` : 'Failed / N/A'}
           </span>
         </div>
@@ -43,16 +43,22 @@ function CustomChartTooltip({ active, payload, label }) {
   return null;
 }
 
-export default function LatencyAreaChart({ data = [], isLoading = false, height = 260 }) {
+export default function LatencyAreaChart({
+  data = [],
+  isLoading = false,
+  height = 240,
+  title = 'Response Time Trend',
+  subtitle = 'Continuous round-trip network latency in milliseconds',
+}) {
   if (isLoading) {
     return (
       <div
-        className="w-full bg-panel border border-subtle rounded-md p-6 flex flex-col items-center justify-center animate-pulse"
+        className="w-full bg-card border border-subtle/60 rounded-[20px] p-6 flex flex-col items-center justify-center animate-pulse"
         style={{ height }}
         aria-label="Loading latency chart"
       >
-        <div className="w-1/3 h-4 bg-subtle/40 rounded mb-4"></div>
-        <div className="w-full h-3/4 bg-subtle/20 rounded"></div>
+        <div className="w-1/3 h-4 bg-subtle rounded-full mb-4"></div>
+        <div className="w-full h-3/4 bg-subtle/60 rounded-2xl"></div>
       </div>
     );
   }
@@ -60,18 +66,17 @@ export default function LatencyAreaChart({ data = [], isLoading = false, height 
   if (!data || data.length === 0) {
     return (
       <div
-        className="w-full bg-panel border border-subtle rounded-md p-6 flex flex-col items-center justify-center text-center font-mono"
+        className="w-full bg-card border border-subtle/60 rounded-[20px] p-6 flex flex-col items-center justify-center text-center"
         style={{ height }}
       >
-        <span className="text-xs text-text-secondary">No telemetry records in selected time range</span>
-        <span className="text-[11px] text-text-secondary/70 mt-1">
+        <span className="text-xs font-medium text-text-primary">No telemetry records in selected time range</span>
+        <span className="text-xs text-text-secondary mt-1">
           Background pinger checks will populate time-series metrics
         </span>
       </div>
     );
   }
 
-  // Format data for Recharts
   const chartPoints = data.map((item) => {
     const dateObj = new Date(item.checkedAt || item.timestamp);
     const timeStr = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -85,45 +90,41 @@ export default function LatencyAreaChart({ data = [], isLoading = false, height 
   });
 
   return (
-    <div className="w-full bg-panel border border-subtle rounded-md p-4 sm:p-5">
-      <div className="flex items-center justify-between mb-4">
+    <div className="w-full bg-card border border-subtle/60 rounded-[20px] p-4 sm:p-5">
+      <div className="flex items-center justify-between mb-4 gap-2">
         <div>
-          <h3 className="text-xs font-mono font-semibold uppercase tracking-wider text-text-primary">
-            Response Time Trend
-          </h3>
-          <p className="text-[11px] font-mono text-text-secondary">
-            Continuous round-trip network latency in milliseconds
-          </p>
+          <h3 className="text-sm font-semibold text-text-primary">{title}</h3>
+          <p className="text-xs text-text-secondary">{subtitle}</p>
         </div>
-        <div className="flex items-center gap-3 text-xs font-mono">
-          <span className="flex items-center gap-1.5 text-text-secondary">
-            <span className="w-2.5 h-0.5 bg-amber-brand"></span>
-            Latency
-          </span>
+        <div className="flex items-center gap-2 text-xs font-mono bg-panel border border-subtle/70 px-3 py-1 rounded-full">
+          <span className="w-2 h-2 rounded-full bg-accent" aria-hidden="true"></span>
+          <span className="text-text-secondary">Latency (ms)</span>
         </div>
       </div>
 
       <div style={{ width: '100%', height }}>
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={chartPoints} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+          <AreaChart data={chartPoints} margin={{ top: 10, right: 10, left: -16, bottom: 0 }}>
             <defs>
               <linearGradient id="latencyGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#D97706" stopOpacity={0.25} />
-                <stop offset="95%" stopColor="#D97706" stopOpacity={0.0} />
+                <stop offset="5%" stopColor="#2563EB" stopOpacity={0.22} />
+                <stop offset="95%" stopColor="#2563EB" stopOpacity={0.0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-subtle/40" />
+            <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-subtle" />
             <XAxis
               dataKey="time"
               stroke="currentColor"
               className="text-text-secondary text-[10px] font-mono"
               tickLine={false}
+              axisLine={false}
               tickMargin={8}
             />
             <YAxis
               stroke="currentColor"
               className="text-text-secondary text-[10px] font-mono"
               tickLine={false}
+              axisLine={false}
               tickMargin={4}
               unit="ms"
             />
@@ -131,8 +132,8 @@ export default function LatencyAreaChart({ data = [], isLoading = false, height 
             <Area
               type="monotone"
               dataKey="latencyMs"
-              stroke="#D97706"
-              strokeWidth={2}
+              stroke="#2563EB"
+              strokeWidth={2.25}
               fillOpacity={1}
               fill="url(#latencyGradient)"
               isAnimationActive={false}

@@ -3,11 +3,11 @@ import React from 'react';
 export default function SummaryCards({ summary, isLoading }) {
   if (isLoading && !summary) {
     return (
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6" aria-label="Loading summary metrics">
-        {[1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="bg-panel border border-subtle rounded p-4 h-24 flex flex-col justify-between">
-            <div className="w-16 h-3 bg-subtle/40 rounded-sm animate-pulse"></div>
-            <div className="w-24 h-6 bg-subtle/60 rounded-sm animate-pulse"></div>
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 mb-5" aria-label="Loading summary metrics">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="bg-card rounded-[20px] p-4 h-24 flex flex-col justify-between">
+            <div className="w-20 h-3 bg-subtle/70 rounded-full animate-pulse"></div>
+            <div className="w-24 h-6 bg-subtle rounded-full animate-pulse"></div>
           </div>
         ))}
       </div>
@@ -22,83 +22,61 @@ export default function SummaryCards({ summary, isLoading }) {
     activeIncidentsCount = 0,
   } = summary || {};
 
+  const cards = [
+    {
+      label: 'Global Uptime',
+      value: `${overallUptime24h.toFixed(2)}%`,
+      sub: `${statusCounts.UP || 0}/${totalMonitors} operational`,
+      subColor: 'text-status-up',
+      dotClass: 'bg-status-up-dot',
+    },
+    {
+      label: 'Mean Latency',
+      value: `${averageLatency24hMs} ms`,
+      sub: '24h avg response',
+      subColor: 'text-accent',
+      dotClass: 'bg-accent',
+    },
+    {
+      label: 'Monitored APIs',
+      value: `${totalMonitors}`,
+      sub: `${statusCounts.PAUSED || 0} paused`,
+      subColor: 'text-text-secondary',
+      dotClass: 'bg-status-paused',
+    },
+    {
+      label: 'Active Incidents',
+      value: `${activeIncidentsCount}`,
+      sub: statusCounts.DOWN > 0 ? `${statusCounts.DOWN} down` : 'all clear',
+      subColor: activeIncidentsCount > 0 || statusCounts.DOWN > 0 ? 'text-status-down' : 'text-status-up',
+      dotClass: activeIncidentsCount > 0 || statusCounts.DOWN > 0 ? 'bg-status-down-dot' : 'bg-status-up-dot',
+    },
+  ];
+
   return (
-    <section aria-labelledby="telemetry-summary-heading" className="mb-6">
+    <section aria-labelledby="telemetry-summary-heading" className="mb-5">
       <h2 id="telemetry-summary-heading" className="sr-only">
-        Global Telemetry Ledger Summary
+        Global Telemetry Summary
       </h2>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        <div className="bg-panel border border-subtle rounded p-4 flex flex-col justify-between">
-          <span className="text-[11px] font-mono uppercase tracking-wider text-text-secondary">
-            Total Endpoints
-          </span>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-mono font-semibold text-text-primary tabular-nums">
-              {totalMonitors}
-            </span>
-            <span className="text-xs font-mono text-text-secondary">monitored</span>
-          </div>
-        </div>
-
-        <div className="bg-panel border border-subtle rounded p-4 flex flex-col justify-between">
-          <span className="text-[11px] font-mono uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-sm bg-status-up" aria-hidden="true"></span>
-            Operational UP
-          </span>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-mono font-semibold text-status-up tabular-nums">
-              {statusCounts.UP || 0}
-            </span>
-            <span className="text-xs font-mono text-text-secondary">healthy</span>
-          </div>
-        </div>
-
-        <div className="bg-panel border border-subtle rounded p-4 flex flex-col justify-between">
-          <span className="text-[11px] font-mono uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-sm bg-status-down" aria-hidden="true"></span>
-            Fault DOWN
-          </span>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span
-              className={`text-2xl font-mono font-semibold tabular-nums ${
-                statusCounts.DOWN > 0 ? 'text-status-down' : 'text-text-secondary'
-              }`}
-            >
-              {statusCounts.DOWN || 0}
-            </span>
-            {activeIncidentsCount > 0 ? (
-              <span className="text-[11px] font-mono text-status-down px-1 py-0.5 border border-status-down bg-status-down-bg rounded-sm">
-                {activeIncidentsCount} active
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+        {cards.map((card) => (
+          <div
+            key={card.label}
+            className="bg-card border border-subtle/60 rounded-[20px] p-4 flex flex-col justify-between"
+          >
+            <span className="text-xs font-medium text-text-secondary">{card.label}</span>
+            <div className="mt-2.5 flex items-baseline justify-between gap-2 flex-wrap">
+              <span className="text-xl sm:text-2xl font-bold font-mono text-text-primary tabular-nums">
+                {card.value}
               </span>
-            ) : (
-              <span className="text-xs font-mono text-text-secondary">normal</span>
-            )}
+              <span className={`inline-flex items-center gap-1.5 text-[11px] font-medium ${card.subColor}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${card.dotClass}`} aria-hidden="true" />
+                {card.sub}
+              </span>
+            </div>
           </div>
-        </div>
-
-        <div className="bg-panel border border-subtle rounded p-4 flex flex-col justify-between">
-          <span className="text-[11px] font-mono uppercase tracking-wider text-text-secondary">
-            24H Mean Uptime
-          </span>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-mono font-semibold text-text-primary tabular-nums">
-              {overallUptime24h.toFixed(2)}%
-            </span>
-          </div>
-        </div>
-
-        <div className="bg-panel border border-subtle rounded p-4 flex flex-col justify-between col-span-2 sm:col-span-1">
-          <span className="text-[11px] font-mono uppercase tracking-wider text-text-secondary">
-            Mean Latency 24H
-          </span>
-          <div className="mt-2 flex items-baseline gap-1.5">
-            <span className="text-2xl font-mono font-semibold text-text-primary tabular-nums">
-              {averageLatency24hMs}
-            </span>
-            <span className="text-xs font-mono text-text-secondary">ms</span>
-          </div>
-        </div>
+        ))}
       </div>
     </section>
   );
